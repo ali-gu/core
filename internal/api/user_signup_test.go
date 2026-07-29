@@ -19,7 +19,7 @@ func Test_SignUp(t *testing.T) {
 
 		w := env.do(http.MethodPost, "/v1/users", "", contracts.SignUpRequest{
 			Email:        "owner@example.com",
-			Password:     "s3cr3t-pw",
+			Password:     "S3cr3t-pw",
 			PracticeName: ptr.To("Bright Smiles"),
 		})
 		require.Equal(t, http.StatusCreated, w.Code)
