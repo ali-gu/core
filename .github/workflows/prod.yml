@@ -1,0 +1,63 @@
+name: prod_ci
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  prod_migrate:
+    name: prod_migrate
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@v3.27.1
+
+      - name: Run migrations
+        env:
+          DB_HOST: ${{ vars.PROD_DB_HOST }}
+          DB_PORT: ${{ vars.PROD_DB_PORT }}
+          DB_USER: ${{ vars.PROD_DB_USER }}
+          DB_NAME: ${{ vars.PROD_DB_NAME }}
+          DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+        run: |
+          goose -dir db/migrations postgres \
+            "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME password=$DB_PASSWORD sslmode=require" \
+            up
+
+  prod_deploy:
+    name: prod_deploy
+    needs: prod_migrate
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull prod Vercel project settings
+        run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+
+      - name: Build prod app
+        run: vercel build --prod --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+
+      - name: Deploy to Vercel (production)
+        run: vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}

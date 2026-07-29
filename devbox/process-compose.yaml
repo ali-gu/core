@@ -1,0 +1,16 @@
+version: "0.5"
+
+processes:
+  core:
+    command: "make run-api"
+    working_dir: "/Users/ali/speechory/core"
+    availability:
+      restart: "always"
+    readiness_probe:
+      http_get:
+        host: localhost
+        scheme: http
+        path: "/health"
+        port: 8080
+      period_seconds: 5
+      failure_threshold: 10

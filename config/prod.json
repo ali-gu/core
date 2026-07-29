@@ -1,0 +1,30 @@
+{
+  "landscape": "prod",
+  "db": {
+    "reader": {
+      "host": "aws-1-us-east-2.pooler.supabase.com",
+      "port": 6543
+    },
+    "writer": {
+      "host": "aws-1-us-east-2.pooler.supabase.com",
+      "port": 6543
+    },
+    "username": "postgres.loruysedenmpdqxdndpy",
+    "db_name": "core",
+    "password": "{{env `DB_PASSWORD`}}",
+    "ssl_mode": "required"
+  },
+  "telnyx": {
+    "api_key": "{{env `TELNYX_API_KEY`}}",
+    "public_key": "{{env `TELNYX_PUBLIC_KEY`}}"
+  },
+  "nexhealth": {
+    "base_url": "https://nexhealth.info",
+    "api_key": "{{env `NEXHEALTH_API_KEY`}}"
+  },
+  "supabase": {
+    "url": "https://loruysedenmpdqxdndpy.supabase.co",
+    "pub_key": "{{env `SUPABASE_PUB_KEY`}}"
+  },
+  "domain": "https://api.speechory.com"
+}

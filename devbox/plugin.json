@@ -1,0 +1,7 @@
+{
+  "name": "core",
+  "version": "1.0.0",
+  "create_files": {
+    "{{.Virtenv}}/process-compose.yaml": "./process-compose.yaml"
+  }
+}

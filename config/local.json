@@ -1,0 +1,30 @@
+{
+  "landscape": "local",
+  "db": {
+    "reader": {
+      "host": "localhost",
+      "port": 5432
+    },
+    "writer": {
+      "host": "localhost",
+      "port": 5432
+    },
+    "username": "developer",
+    "db_name": "core",
+    "password": "",
+    "ssl_mode": "disabled"
+  },
+  "telnyx": {
+    "api_key": "{{env `TELNYX_API_KEY`}}",
+    "public_key": "{{env `TELNYX_PUBLIC_KEY`}}"
+  },
+  "nexhealth": {
+    "base_url": "https://nexhealth.info",
+    "api_key": "{{env `NEXHEALTH_API_KEY`}}"
+  },
+  "supabase": {
+    "url": "https://pfpkscvumsgcoyiiwrdw.supabase.co",
+    "pub_key": "{{env `SUPABASE_PUB_KEY`}}"
+  },
+  "domain": "https://subgranular-ungroaning-kent.ngrok-free.dev"
+}

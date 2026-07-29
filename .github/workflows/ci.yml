@@ -1,0 +1,112 @@
+name: dev_ci
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  unit_tests:
+    name: unit_tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: developer
+          POSTGRES_DB: core_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@v3.27.1
+
+      - name: Run test migrations
+        run: |
+          goose -dir db/migrations postgres \
+            "host=localhost port=5432 user=developer dbname=core_test sslmode=disable" \
+            up
+
+      - name: Run tests
+        run: go test ./...
+
+  dev_migrate:
+    name: dev_migrate
+    needs: unit_tests
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@v3.27.1
+
+      - name: Run dev migrations
+        env:
+          DB_HOST: ${{ vars.DEV_DB_HOST }}
+          DB_PORT: ${{ vars.DEV_DB_PORT }}
+          DB_USER: ${{ vars.DEV_DB_USER }}
+          DB_NAME: ${{ vars.DEV_DB_NAME }}
+          DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+        run: |
+          goose -dir db/migrations postgres \
+            "host=$DB_HOST port=$DB_PORT user=$DB_USER dbname=$DB_NAME password=$DB_PASSWORD sslmode=require" \
+            up
+
+  dev_deploy:
+    name: dev_deploy
+    needs: dev_migrate
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull dev Vercel project settings
+        run: vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+
+      - name: Build dev app
+        run: vercel build --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+
+      - name: Deploy dev app to Vercel (preview)
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --target preview --token=$VERCEL_TOKEN)
+          echo "url=$url" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+
+      - name: Assign domain to deployment
+        run: vercel alias set ${{ steps.deploy.outputs.url }} dev.api.speechory.com --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}

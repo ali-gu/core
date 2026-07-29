@@ -1,0 +1,26 @@
+{
+  "landscape": "test",
+  "db": {
+    "reader": {
+      "host": "localhost",
+      "port": 5432
+    },
+    "writer": {
+      "host": "localhost",
+      "port": 5432
+    },
+    "username": "developer",
+    "db_name": "core_test",
+    "password": "",
+    "ssl_mode": "disabled"
+  },
+  "telnyx": {
+    "api_key": "",
+    "public_key": ""
+  },
+  "nexhealth": {
+    "base_url": "",
+    "api_key": ""
+  },
+  "domain": ""
+}
