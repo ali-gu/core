@@ -86,7 +86,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		user, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:        "new_user@example.com",
-			Password:     "s3cr3t-pw",
+			Password:     "S3cr3t-pw",
 			PracticeName: ptr.To("new_user_practice"),
 		})
 		require.NoError(t, err)
@@ -109,7 +109,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:    "no_practice_name@example.com",
-			Password: "s3cr3t-pw",
+			Password: "S3cr3t-pw",
 		})
 		require.Error(t, err)
 
@@ -127,7 +127,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		user, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:    "invited_user@example.com",
-			Password: "s3cr3t-pw",
+			Password: "S3cr3t-pw",
 		})
 		require.NoError(t, err)
 		require.Equal(t, invited.ID, user.ID)
@@ -143,7 +143,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:        "no_admin_role@example.com",
-			Password:     "s3cr3t-pw",
+			Password:     "S3cr3t-pw",
 			PracticeName: ptr.To("no_admin_role_practice"),
 		})
 		require.Error(t, err)
@@ -161,7 +161,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:    "no_reader_role@example.com",
-			Password: "s3cr3t-pw",
+			Password: "S3cr3t-pw",
 		})
 		require.Error(t, err)
 
@@ -177,7 +177,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:    "active_user@example.com",
-			Password: "s3cr3t-pw",
+			Password: "S3cr3t-pw",
 		})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "already exists")
@@ -189,7 +189,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:    "disabled_user@example.com",
-			Password: "s3cr3t-pw",
+			Password: "S3cr3t-pw",
 		})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "already exists")
@@ -201,14 +201,14 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:        "dup_user@example.com",
-			Password:     "s3cr3t-pw",
+			Password:     "S3cr3t-pw",
 			PracticeName: ptr.To("dup_user_practice"),
 		})
 		require.NoError(t, err)
 
 		_, err = bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:        "dup_user@example.com",
-			Password:     "s3cr3t-pw",
+			Password:     "S3cr3t-pw",
 			PracticeName: ptr.To("dup_user_practice"),
 		})
 		require.Error(t, err)
@@ -222,11 +222,11 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:        "checked_user@example.com",
-			Password:     "s3cr3t-pw",
+			Password:     "S3cr3t-pw",
 			PracticeName: ptr.To("checked_user_practice"),
 		})
 		require.NoError(t, err)
-		authMock.AssertCalled(t, "SignUp", mock.Anything, "checked_user@example.com", "s3cr3t-pw")
+		authMock.AssertCalled(t, "SignUp", mock.Anything, "checked_user@example.com", "S3cr3t-pw")
 	})
 
 	t.Run("error_when_supabase_signup_fails_leaves_no_user_created", func(t *testing.T) {
@@ -237,7 +237,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:        "fail_user@example.com",
-			Password:     "s3cr3t-pw",
+			Password:     "S3cr3t-pw",
 			PracticeName: ptr.To("fail_user_practice"),
 		})
 		require.Error(t, err)
@@ -258,7 +258,7 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:    "invited_fail@example.com",
-			Password: "s3cr3t-pw",
+			Password: "S3cr3t-pw",
 		})
 		require.Error(t, err)
 
@@ -276,9 +276,51 @@ func Test_User_SignUp(t *testing.T) {
 
 		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
 			Email:    "checked_before_supabase@example.com",
-			Password: "s3cr3t-pw",
+			Password: "S3cr3t-pw",
 		})
 		require.Error(t, err)
+		authMock.AssertNotCalled(t, "SignUp", mock.Anything, mock.Anything, mock.Anything)
+	})
+
+	t.Run("error_when_password_is_too_short", func(t *testing.T) {
+		authMock := auth.NewMockIAuth(t)
+		cfg, bz := newUserBizWithAuthMock(t, authMock)
+
+		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
+			Email:        "short_pw@example.com",
+			Password:     "S3cr3t",
+			PracticeName: ptr.To("short_pw_practice"),
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "at least 8 characters")
+		authMock.AssertNotCalled(t, "SignUp", mock.Anything, mock.Anything, mock.Anything)
+	})
+
+	t.Run("error_when_password_has_no_uppercase_letter", func(t *testing.T) {
+		authMock := auth.NewMockIAuth(t)
+		cfg, bz := newUserBizWithAuthMock(t, authMock)
+
+		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
+			Email:        "no_upper@example.com",
+			Password:     "s3cr3t-pw",
+			PracticeName: ptr.To("no_upper_practice"),
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "uppercase")
+		authMock.AssertNotCalled(t, "SignUp", mock.Anything, mock.Anything, mock.Anything)
+	})
+
+	t.Run("error_when_password_has_no_digit", func(t *testing.T) {
+		authMock := auth.NewMockIAuth(t)
+		cfg, bz := newUserBizWithAuthMock(t, authMock)
+
+		_, err := bz.User.SignUp(cfg.Ctx, cfg.DB, contracts.SignUpRequest{
+			Email:        "no_digit@example.com",
+			Password:     "Secretpw",
+			PracticeName: ptr.To("no_digit_practice"),
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "uppercase")
 		authMock.AssertNotCalled(t, "SignUp", mock.Anything, mock.Anything, mock.Anything)
 	})
 }

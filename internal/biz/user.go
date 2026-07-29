@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unicode"
 
 	"github.com/ali-gulzar/speechory-core/internal/constants"
 	"github.com/ali-gulzar/speechory-core/internal/contracts"
@@ -16,6 +17,8 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+const minPasswordLength = 8
+
 type User struct {
 	*Biz
 
@@ -25,7 +28,6 @@ type User struct {
 
 type IUser interface {
 	SignUp(ctx context.Context, db storage.DB, input contracts.SignUpRequest) (*storage.User, error)
-
 	SignIn(ctx context.Context, db storage.DB, input contracts.SignInRequest) (*storage.User, *auth.Session, error)
 	Refresh(ctx context.Context, db storage.DB, refreshToken string) (*storage.User, *auth.Session, error)
 	Authenticate(ctx context.Context, db storage.DB, accessToken string) (*storage.User, error)
@@ -36,6 +38,10 @@ type IUser interface {
 var _ IUser = (*User)(nil)
 
 func (u *User) SignUp(ctx context.Context, db storage.DB, input contracts.SignUpRequest) (*storage.User, error) {
+	if err := validatePasswordStrength(input.Password); err != nil {
+		return nil, err
+	}
+
 	existingUser, err := u.storage.User.GetByEmail(ctx, db, input.Email)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, rerror.Wrap(err)
@@ -188,6 +194,30 @@ func (u *User) Invite(ctx context.Context, db storage.DB, practiceID ksuid.KSUID
 	}
 
 	return u.storage.User.GetByID(ctx, db, userID)
+}
+
+func validatePasswordStrength(password string) error {
+	if len(password) < minPasswordLength {
+		return rerror.NewMessage(fmt.Sprintf("password must be at least %d characters long", minPasswordLength), rerror.Validation)
+	}
+
+	var hasUpper, hasLower, hasDigit bool
+	for _, r := range password {
+		switch {
+		case unicode.IsUpper(r):
+			hasUpper = true
+		case unicode.IsLower(r):
+			hasLower = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		}
+	}
+
+	if !hasUpper || !hasLower || !hasDigit {
+		return rerror.NewMessage("password must contain at least one uppercase letter, one lowercase letter, and one digit", rerror.Validation)
+	}
+
+	return nil
 }
 
 func (u *User) roleByType(ctx context.Context, db storage.DB, roleType constants.RoleType) (*storage.Role, error) {
