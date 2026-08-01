@@ -38,6 +38,7 @@ type Agent struct {
 
 	storage     storage.Storage
 	telnyxAgent agent.IAgent
+	landscape   constants.Landscape
 }
 
 type IAgent interface {
@@ -286,8 +287,10 @@ func (a *Agent) Delete(ctx context.Context, db storage.DB, id ksuid.KSUID) error
 		return rerror.Wrap(err)
 	}
 
-	if err = a.telnyxAgent.Delete(ctx, agent.DeleteAgentParams{AgentRef: ptr.From(agentRecord.AgentRef)}); err != nil {
-		return rerror.Wrap(err)
+	if ptr.From(agentRecord.AgentRef) != constants.TestAgentFor(a.landscape).AgentRef {
+		if err = a.telnyxAgent.Delete(ctx, agent.DeleteAgentParams{AgentRef: ptr.From(agentRecord.AgentRef)}); err != nil {
+			return rerror.Wrap(err)
+		}
 	}
 
 	return a.storage.Agent.Delete(ctx, db, id)

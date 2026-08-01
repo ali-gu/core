@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"github.com/ali-gulzar/speechory-core/internal/constants"
 	"github.com/ali-gulzar/speechory-core/internal/services/agent"
 	"github.com/ali-gulzar/speechory-core/internal/services/auth"
 	"github.com/ali-gulzar/speechory-core/internal/services/ehr"
@@ -22,6 +23,7 @@ type Biz struct {
 	Analytics    IAnalytics
 	Tool         ITool
 	Conversation IConversation
+	TestAgent    ITestAgent
 }
 
 type Dependencies struct {
@@ -32,6 +34,7 @@ type Dependencies struct {
 	EHR                      ehr.IEHR
 	TelnyxTool               tool.ITool
 	Domain                   string
+	Landscape                constants.Landscape
 }
 
 func NewBiz(deps Dependencies) *Biz {
@@ -43,6 +46,7 @@ func NewBiz(deps Dependencies) *Biz {
 		Biz:         &bz,
 		storage:     deps.Storage,
 		telnyxAgent: deps.TelnyxAgent,
+		landscape:   deps.Landscape,
 	}
 	bz.Practice = &Practice{
 		Biz:     &bz,
@@ -91,6 +95,11 @@ func NewBiz(deps Dependencies) *Biz {
 		Biz:         &bz,
 		storage:     deps.Storage,
 		telnyxAgent: deps.TelnyxAgent,
+	}
+	bz.TestAgent = &TestAgent{
+		Biz:       &bz,
+		storage:   deps.Storage,
+		landscape: deps.Landscape,
 	}
 	return &bz
 }

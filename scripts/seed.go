@@ -10,6 +10,7 @@ import (
 
 	cfgfiles "github.com/ali-gulzar/speechory-core/config"
 	"github.com/ali-gulzar/speechory-core/internal"
+	"github.com/ali-gulzar/speechory-core/internal/biz"
 	"github.com/ali-gulzar/speechory-core/internal/constants"
 	"github.com/ali-gulzar/speechory-core/internal/storage"
 	"github.com/ali-gulzar/speechory-core/internal/storage/states"
@@ -19,12 +20,8 @@ import (
 )
 
 var (
-	seedPracticeID    = mustParseKSUID("3GateuqaP9ReKyB0Rwit6XJb9FP")
-	seedUserID        = mustParseKSUID("3Gatex8E9CzpB43nDrM9dHzmrLD")
-	seedLocationID    = mustParseKSUID("3H3QbRMyzFRnR3LuOLKVJG4Bt1H")
-	seedEHRID         = mustParseKSUID("3H3QbRwpWXaTyQO7YgUQqD0X09M")
-	seedPhoneNumberID = mustParseKSUID("3H3QbRrT1CVLUQfjx0tqlzSQxhG")
-	seedAgentID       = mustParseKSUID("3H3QbWhEQUBZd5p2ZWuinJoWtM3")
+	seedPracticeID = mustParseKSUID("3GateuqaP9ReKyB0Rwit6XJb9FP")
+	seedUserID     = mustParseKSUID("3Gatex8E9CzpB43nDrM9dHzmrLD")
 )
 
 const (
@@ -34,17 +31,6 @@ const (
 	seedPracticeEmail   = "local@speechory"
 	seedPracticeWebsite = "https://speechory.com"
 	seedPracticeZipCode = "30101"
-
-	seedLocationAddress = "5345 Magnolia"
-
-	seedEHRSubdomain   = "speechory-demo-practice"
-	seedEHRLocationRef = "353210"
-
-	seedPhoneNumber    = "+13366541083"
-	seedPhoneNumberRef = "3012822334093395781"
-
-	seedAgentRef  = "assistant-cf1ab171-db2b-48b8-a7b6-57930f547615"
-	seedAgentName = "Local Agent"
 )
 
 func mustParseKSUID(s string) ksuid.KSUID {
@@ -74,7 +60,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := seed(ctx, db, storage.NewStorage()); err != nil {
+	storageDeps := storage.NewStorage()
+	globalBiz := biz.NewBiz(biz.Dependencies{
+		Storage:   storageDeps,
+		Landscape: constants.LandscapeLocal,
+	})
+
+	if err := seed(ctx, db, storageDeps, globalBiz); err != nil {
 		log.Fatal(err)
 	}
 
@@ -97,7 +89,7 @@ func loadDBConfig() (internal.DBConfig, error) {
 	return wrapper.DB, nil
 }
 
-func seed(ctx context.Context, db storage.DB, s storage.Storage) error {
+func seed(ctx context.Context, db storage.DB, s storage.Storage, bz *biz.Biz) error {
 	if _, err := s.User.GetByEmail(ctx, db, seedUserEmail); err == nil {
 		log.Printf("seed: user %s already exists, skipping", seedUserEmail)
 		return nil
@@ -143,54 +135,11 @@ func seed(ctx context.Context, db storage.DB, s storage.Storage) error {
 
 	log.Printf("seed: created user %s (practice %s)", seedUserEmail, seedPracticeID)
 
-	if err := s.Location.Create(ctx, db, storage.Location{
-		EntityBase: storage.EntityBase[states.LocationState]{EntityState: states.LocationStateActive},
-		ID:         seedLocationID,
-		Address:    seedLocationAddress,
-		PracticeID: seedPracticeID,
-		CreatedAt:  time.Now(),
-	}); err != nil {
-		return fmt.Errorf("seed: creating location: %w", err)
+	testAgent, err := bz.TestAgent.Create(ctx, db, seedPracticeID)
+	if err != nil {
+		return fmt.Errorf("seed: creating test agent: %w", err)
 	}
 
-	onboardingID := ksuid.New().String()
-	if err := s.EHR.Create(ctx, db, storage.EHRS{
-		ID:            seedEHRID,
-		Type:          constants.EHRNexHealth,
-		Subdomain:     seedEHRSubdomain,
-		LocationRef:   ptr.To(seedEHRLocationRef),
-		LocationID:    seedLocationID,
-		OnboardingURL: "https://app.nexhealth.com/onboardings/" + onboardingID,
-		OnboardingID:  onboardingID,
-		CreatedAt:     time.Now(),
-	}); err != nil {
-		return fmt.Errorf("seed: creating ehr: %w", err)
-	}
-
-	if err := s.PhoneNumber.Create(ctx, db, storage.PhoneNumber{
-		EntityBase:       storage.EntityBase[states.PhoneNumberState]{EntityState: states.PhoneNumberStateActive},
-		ID:               seedPhoneNumberID,
-		PhoneNumber:      seedPhoneNumber,
-		PhoneNumberIDRef: ptr.To(seedPhoneNumberRef),
-		PracticeID:       seedPracticeID,
-		CreatedAt:        time.Now(),
-	}); err != nil {
-		return fmt.Errorf("seed: creating phone number: %w", err)
-	}
-
-	if err := s.Agent.Create(ctx, db, storage.Agent{
-		EntityBase:    storage.EntityBase[states.AgentState]{EntityState: states.AgentStateActive},
-		ID:            seedAgentID,
-		PracticeID:    seedPracticeID,
-		AgentRef:      ptr.To(seedAgentRef),
-		Name:          seedAgentName,
-		LocationID:    ptr.To(seedLocationID),
-		PhoneNumberID: ptr.To(seedPhoneNumberID),
-		CreatedAt:     time.Now(),
-	}); err != nil {
-		return fmt.Errorf("seed: creating agent: %w", err)
-	}
-
-	log.Printf("seed: created location, ehr, phone number, and agent (practice %s)", seedPracticeID)
+	log.Printf("seed: created location, ehr, phone number, and agent %s (practice %s)", testAgent.ID, seedPracticeID)
 	return nil
 }

@@ -64,6 +64,7 @@ func main() {
 		EHR:                      nexhealthClient,
 		TelnyxTool:               toolTelnyx.NewTelnyx(telnyxSvc.Client),
 		Domain:                   appCfg.Domain,
+		Landscape:                appCfg.Landscape,
 	})
 
 	// api layer

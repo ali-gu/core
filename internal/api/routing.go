@@ -96,6 +96,9 @@ func (api *API) Routes() *gin.Engine {
 	authed.GET("/agents/:agent_id/conversations/:conversation_id", api.Build(func() Handler {
 		return &GetAgentConversationHandler{}
 	}))
+	authed.POST("/agents/test-agent", api.Build(func() Handler {
+		return &CreateTestAgentHandler{}
+	}))
 
 	authed.POST("/locations", api.Build(func() Handler {
 		return &CreateLocationHandler{}
