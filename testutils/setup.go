@@ -113,6 +113,7 @@ func SetupBiz(t *testing.T) (biz.Dependencies, biz.Biz) {
 		EHR:                      ehrMock,
 		TelnyxTool:               toolMock,
 		Domain:                   TestDomain,
+		Landscape:                constants.LandscapeTest,
 	}
 
 	return dep, *biz.NewBiz(dep)

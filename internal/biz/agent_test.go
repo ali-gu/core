@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ali-gulzar/speechory-core/internal/biz"
+	"github.com/ali-gulzar/speechory-core/internal/constants"
 	"github.com/ali-gulzar/speechory-core/internal/contracts"
 	"github.com/ali-gulzar/speechory-core/internal/services/agent"
 	"github.com/ali-gulzar/speechory-core/internal/services/ehr"
@@ -620,6 +621,28 @@ func Test_Agent_Delete(t *testing.T) {
 
 		err := bz.Agent.Delete(cfg.Ctx, cfg.DB, ksuid.New())
 		require.Error(t, err)
+	})
+
+	t.Run("success_keeps_the_shared_telnyx_assistant_for_a_test_agent", func(t *testing.T) {
+		agentMock := agent.NewMockIAgent(t)
+
+		cfg, bz := testutils.BasicSetupWithDeps(t, biz.Dependencies{
+			Storage:                  storage.NewStorage(),
+			TelnyxAgent:              agentMock,
+			TelnyxPhoneNumberManager: phonenumber.NewMockIPhoneNumberManager(t),
+			EHR:                      ehr.NewMockIEHR(t),
+			Landscape:                constants.LandscapeTest,
+		})
+		practice := fixtures.NewPractice(t, cfg, bz)
+		testAgent, err := bz.TestAgent.Create(cfg.Ctx, cfg.DB, practice.ID)
+		require.NoError(t, err)
+
+		require.NoError(t, bz.Agent.Delete(cfg.Ctx, cfg.DB, testAgent.ID))
+		agentMock.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
+
+		agents, err := bz.Agent.Get(cfg.Ctx, cfg.DB, practice.ID)
+		require.NoError(t, err)
+		require.Empty(t, agents)
 	})
 
 	t.Run("error_when_telnyx_delete_fails_leaves_the_agent_in_place", func(t *testing.T) {
