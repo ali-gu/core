@@ -14,7 +14,7 @@ import (
 type LogConversationHandler struct {
 	*API
 
-	req contracts.LogConversationRequest
+	req contracts.LogConversationWebhook
 }
 
 func (h *LogConversationHandler) Validator(ctx *gin.Context, api *API, body []byte) error {
@@ -33,7 +33,7 @@ func (h *LogConversationHandler) Handle(ctx *gin.Context, _ storage.DB) error {
 		return rerror.Wrap(err)
 	}
 
-	if err := h.Biz.Conversation.LogConversation(ctx, db, h.req); err != nil {
+	if err := h.Biz.Conversation.LogConversation(ctx, db, h.req.ToRequest()); err != nil {
 		return rerror.Wrap(err)
 	}
 
